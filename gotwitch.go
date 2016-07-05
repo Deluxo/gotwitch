@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/deluxo/gotwitchlib"
+	"net/url"
 	"github.com/fatih/color"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"io/ioutil"
@@ -45,16 +46,50 @@ var (
 		"Enable debug mode.",
 	).Short('d').Bool()
 
-	onlineStreams = app.Command(
-		"online-streams",
-		"Look up online streams being followed.",
-	).Default()
+	// online-streams
+	onlineSubs = app.Command(
+		"online-subs",
+		"Look up online subscriptions currently streaming.",
+	)
 
+	// streams
+	streams = app.Command(
+		"streams",
+		"Look up online streams.",
+	)
+
+	streamsGame = streams.Arg(
+		"game",
+		"Game title, like dota2",
+	).String()
+
+	streamsType = streams.Arg(
+		"type",
+		"Stream type, e.g. live, all, or playlist",
+	).String()
+
+	streamsLimit = streams.Arg(
+		"limit",
+		"Number of streams to print.",
+	).Int()
+
+	streamsOffset = streams.Arg(
+		"offset",
+		"Pagination offset for given limit.",
+	).Int()
+
+	// watch
 	watch = app.Command(
 		"watch",
 		"Watch the stream.",
 	)
 
+	streamer = watch.Arg(
+		"streamer",
+		"Streamer name.",
+	).Required().String()
+
+	// top-games
 	topGames = app.Command(
 		"top-games",
 		"Get the list of currently most played games.",
@@ -70,11 +105,7 @@ var (
 		"Pagination offset of a page (default page size is 10).",
 	).Int()
 
-	streamer = watch.Arg(
-		"streamer",
-		"Streamer name.",
-	).Required().String()
-
+	// setup
 	setup = app.Command(
 		"setup",
 		"create a config file with required values",
@@ -100,6 +131,7 @@ var (
 		"Default stream quality to be used, like best, worst, 720p, 480p.",
 	).Required().String()
 
+	// flags
 	notify = app.Flag(
 		"notify",
 		"Print the output through the notification instead of std out.",
@@ -119,19 +151,26 @@ var (
 func main() {
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 
-	case onlineStreams.FullCommand():
+	case onlineSubs.FullCommand():
 		s := getSettings()
-		onlineStreams := twitch.GetOnlineStreams(s.User.OauthToken)
+		onlineSubs := twitch.GetOnlineSubs(s.User.OauthToken)
 		if *notify == true {
 			var notification string
-			for k, v := range onlineStreams.Streams {
+			for k, v := range onlineSubs.Streams {
 				notification += strconv.Itoa(k+1) + ". " + v.Channel.Name + "\n"
 			}
 			exec.Command("notify-send", "GoTwitch", notification).Start()
 		} else {
-			for _, v := range onlineStreams.Streams {
+			for _, v := range onlineSubs.Streams {
 				printStream(v.Channel, statusFlag, gameFlag)
 			}
+		}
+
+	case streams.FullCommand():
+		streams := twitch.GetStreams(url.QueryEscape(*streamsGame), *streamsType, *streamsLimit, *streamsOffset)
+		for _, v := range streams.Streams {
+			printStream(v.Channel, statusFlag, gameFlag)
+			//fmt.Printf("%s", v.Channel.Name)
 		}
 
 	case topGames.FullCommand():
