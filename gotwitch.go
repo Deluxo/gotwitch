@@ -36,7 +36,7 @@ var (
 	settingsPath = usr.HomeDir + "/.config/gotwitch/config.json"
 
 	app = kingpin.New(
-		"go-twitch",
+		"gotwitch",
 		"A command-line twitch.tv application written in Golang.",
 	)
 
