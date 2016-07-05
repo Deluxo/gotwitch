@@ -149,6 +149,7 @@ var (
 )
 
 func main() {
+	kingpin.CommandLine.HelpFlag.Short('h')
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 
 	case onlineSubs.FullCommand():
@@ -168,9 +169,16 @@ func main() {
 
 	case streams.FullCommand():
 		streams := twitch.GetStreams(url.QueryEscape(*streamsGame), *streamsType, *streamsLimit, *streamsOffset)
-		for _, v := range streams.Streams {
-			printStream(v.Channel, statusFlag, gameFlag)
-			//fmt.Printf("%s", v.Channel.Name)
+		if *notify == true {
+			var notification string
+			for k, v := range streams.Streams {
+				notification += strconv.Itoa(k+1) + ". " + v.Channel.Name + "\n"
+			}
+			exec.Command("notify-send", "GoTwitch", notification).Start()
+		} else {
+			for _, v := range streams.Streams {
+				printStream(v.Channel, statusFlag, gameFlag)
+			}
 		}
 
 	case topGames.FullCommand():
