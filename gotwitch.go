@@ -36,154 +36,94 @@ var (
 	usr, _       = user.Current()
 	settingsPath = usr.HomeDir + "/.config/gotwitch/config.json"
 
-	app = kingpin.New(
-		"gotwitch",
-		"A command-line twitch.tv application written in Golang.",
-	)
-
-	debug = app.Flag(
-		"debug",
-		"Enable debug mode.",
-	).Short('d').Bool()
-
-	// online-streams
-	onlineSubs = app.Command(
-		"online-subs",
-		"Look up online subscriptions currently streaming.",
-	)
+	app = kingpin.New("gotwitch", "A command-line twitch.tv application written in Golang.")
 
 	// streams
-	streams = app.Command(
-		"streams",
-		"Look up online streams.",
-	)
-
-	streamsGame = streams.Arg(
-		"game",
-		"Game title, like dota2",
-	).String()
-
-	streamsType = streams.Arg(
-		"type",
-		"Stream type, e.g. live, all, or playlist",
-	).String()
-
-	streamsLimit = streams.Arg(
-		"limit",
-		"Number of streams to print.",
-	).Int()
-
-	streamsOffset = streams.Arg(
-		"offset",
-		"Pagination offset for given limit.",
-	).Int()
+	streams              = app.Command("streams", "Look up online streams.")
+	streamsGame          = streams.Flag("game", "Game title, like dota2").Short('g').String()
+	streamsType          = streams.Flag("type", "Stream type, e.g. live, all, or playlist").Short('t').String()
+	streamsLimit         = streams.Flag("limit", "Number of streams to print.").Short('l').Int()
+	streamsOffset        = streams.Flag("offset", "Pagination offset for given limit.").Short('o').Int()
+	streamsSubscribtions = streams.Flag("subscribtions", "Filter only streams that are subscribed.").Short('s').Bool()
+	streamsOthers        = streams.Flag("others", "Filter unsubscribed streams.").Short('h').Bool()
+	streamsNotify        = streams.Flag("notify", "Print the output through the notification instead of std out.").Short('n').Bool()
+	streamsPrintStatus   = streams.Flag("status", "Include stream status into output.").Short('u').Bool()
+	streamsPrintGame     = streams.Flag("print-game", "Include streamded game title into output.").Short('a').Bool()
 
 	// watch
-	watch = app.Command(
-		"watch",
-		"Watch the stream.",
-	)
+	watch    = app.Command("watch", "Watch the stream.").Default()
+	streamer = watch.Flag("streamer", "Streamer name.").HintAction(listChannels).String()
 
-	streamer = watch.Arg(
-		"streamer",
-		"Streamer name.",
-	).Required().String()
-
-	// top-games
-	topGames = app.Command(
-		"top-games",
-		"Get the list of currently most played games.",
-	)
-
-	limit = topGames.Arg(
-		"limit",
-		"Wanted list size of a request.",
-	).Int()
-
-	offset = topGames.Arg(
-		"offset",
-		"Pagination offset of a page (default page size is 10).",
-	).Int()
+	// games
+	topGames = app.Command("games", "Get the list of currently most played games.")
+	limit    = topGames.Flag("limit", "Wanted list size of a request.").Int()
+	offset   = topGames.Flag("offset", "Pagination offset of a page (default page size is 10).").Int()
 
 	// setup
-	setup = app.Command(
-		"setup",
-		"create a config file with required values",
-	)
-
-	twitchUser = setup.Arg(
-		"username",
-		"Twitch.tv username.",
-	).Required().String()
-
-	twitchOauthToken = setup.Arg(
-		"oauth",
-		"Twitch.tv oAuthToken (must be generated first).",
-	).Required().String()
-
-	playerName = setup.Arg(
-		"player",
-		"Player command to be used along with livestreamer, like mpv or vlc.",
-	).Required().String()
-
-	playerQuality = setup.Arg(
-		"quality",
-		"Default stream quality to be used, like best, worst, 720p, 480p.",
-	).Required().String()
-
+	setup            = app.Command("setup", "create a config file with required values")
+	twitchUser       = setup.Flag("username", "Twitch.tv username.").Required().String()
+	twitchOauthToken = setup.Flag("oauth", "Twitch.tv oAuthToken (must be generated first).").Required().String()
+	playerName       = setup.Flag("player", "Player command to be used along with livestreamer, like mpv or vlc.").Required().String()
+	playerQuality    = setup.Flag("quality", "Default stream quality to be used, like best, worst, 720p, 480p.").Required().String()
 	// flags
-	notify = app.Flag(
-		"notify",
-		"Print the output through the notification instead of std out.",
-	).Short('n').Bool()
-
-	statusFlag = app.Flag(
-		"status",
-		"Include stream status into output.",
-	).Short('s').Bool()
-
-	gameFlag = app.Flag(
-		"game",
-		"Include streamded game title into output.",
-	).Short('g').Bool()
 )
 
 func main() {
 	kingpin.CommandLine.HelpFlag.Short('h')
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 
-	case onlineSubs.FullCommand():
-		s := getSettings()
-		onlineSubs := twitch.GetOnlineSubs(s.User.OauthToken)
-		if *notify == true {
-			var notification string
-			for k, v := range onlineSubs.Streams {
-				notification += strconv.Itoa(k+1) + ". " + v.Channel.Name + "\n"
-			}
-			exec.Command("notify-send", "GoTwitch", notification).Start()
-		} else {
-			for _, v := range onlineSubs.Streams {
-				printStream(v.Channel, statusFlag, gameFlag)
-			}
-		}
-
 	case streams.FullCommand():
-		streams := twitch.GetStreams(url.QueryEscape(*streamsGame), *streamsType, *streamsLimit, *streamsOffset)
-		if *notify == true {
+		if *streamsNotify == true {
 			var notification string
-			for k, v := range streams.Streams {
-				notification += strconv.Itoa(k+1) + ". " + v.Channel.Name + "\n"
+			if *streamsSubscribtions == true {
+				streams := twitch.GetLiveSubs(getSettings().User.OauthToken).Streams
+				for k, v := range streams {
+					notification += strconv.Itoa(k+1) + ". " + v.Channel.Name + "\n"
+				}
+
+			} else if *streamsOthers == true {
+				streams := twitch.GetStreams(url.QueryEscape(*streamsGame), *streamsType, *streamsLimit, *streamsOffset).Streams
+				for k, v := range streams {
+					notification += strconv.Itoa(k+1) + ". " + v.Channel.Name + "\n"
+				}
+			} else {
+				streamsSub := twitch.GetLiveSubs(getSettings().User.OauthToken).Streams
+				for k, v := range streamsSub {
+					notification += strconv.Itoa(k+1) + ". " + v.Channel.Name + "\n"
+				}
+				streamsOth := twitch.GetStreams(url.QueryEscape(*streamsGame), *streamsType, *streamsLimit, *streamsOffset).Streams
+				for k, v := range streamsOth {
+					notification += strconv.Itoa(k+1) + ". " + v.Channel.Name + "\n"
+				}
 			}
 			exec.Command("notify-send", "GoTwitch", notification).Start()
 		} else {
-			for _, v := range streams.Streams {
-				printStream(v.Channel, statusFlag, gameFlag)
+			if *streamsSubscribtions == true {
+				streams := twitch.GetLiveSubs(getSettings().User.OauthToken).Streams
+				for _, v := range streams {
+					printStream(v.Channel, streamsPrintStatus, streamsPrintGame)
+				}
+
+			} else if *streamsOthers == true {
+				streams := twitch.GetStreams(url.QueryEscape(*streamsGame), *streamsType, *streamsLimit, *streamsOffset).Streams
+				for _, v := range streams {
+					printStream(v.Channel, streamsPrintStatus, streamsPrintGame)
+				}
+			} else {
+				streamsSub := twitch.GetLiveSubs(getSettings().User.OauthToken).Streams
+				for _, v := range streamsSub {
+					printStream(v.Channel, streamsPrintStatus, streamsPrintGame)
+				}
+				streamsOth := twitch.GetStreams(url.QueryEscape(*streamsGame), *streamsType, *streamsLimit, *streamsOffset).Streams
+				for _, v := range streamsOth {
+					printStream(v.Channel, streamsPrintStatus, streamsPrintGame)
+				}
 			}
 		}
 
 	case topGames.FullCommand():
 		topGames := twitch.GetTopGames(limit, offset)
-		if *notify == true {
+		if *streamsNotify == true {
 			var notification string
 			for k, v := range topGames.Top {
 				notification += strconv.Itoa(k+1) + ". " + v.Game.Name + "\n"
@@ -207,6 +147,31 @@ func main() {
 	case setup.FullCommand():
 		setSettings(*twitchUser, *twitchOauthToken, *playerName, *playerQuality)
 	}
+}
+
+func listChannels() []string {
+	s := getSettings()
+
+	subStreams := twitch.GetLiveSubs(
+		s.User.OauthToken).Streams
+
+	popularStreams := twitch.GetStreams(
+		*streamsGame,
+		*streamsType,
+		*streamsLimit,
+		*streamsOffset,
+	).Streams
+	list := make([]string, 0)
+	for _, v := range subStreams {
+		//fmt.Println(v.Channel.Name)
+		list = append(list, v.Channel.Name)
+	}
+	for _, v := range popularStreams {
+		fmt.Println(v.Channel.Name)
+		list = append(list, v.Channel.Name)
+	}
+
+	return list
 }
 
 func getSettings() Settings {
