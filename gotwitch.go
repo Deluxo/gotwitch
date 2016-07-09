@@ -44,20 +44,20 @@ var (
 	streamsType          = streams.Flag("type", "Stream type, e.g. live, all, or playlist").Short('t').String()
 	streamsLimit         = streams.Flag("limit", "Number of streams to print.").Short('l').Int()
 	streamsOffset        = streams.Flag("offset", "Pagination offset for given limit.").Short('o').Int()
-	streamsSubscribtions = streams.Flag("subscribtions", "Filter only streams that are subscribed.").Short('s').Bool()
-	streamsOthers        = streams.Flag("others", "Filter unsubscribed streams.").Short('h').Bool()
-	streamsNotify        = streams.Flag("notify", "Print the output through the notification instead of std out.").Short('n').Bool()
-	streamsPrintStatus   = streams.Flag("status", "Include stream status into output.").Short('u').Bool()
-	streamsPrintGame     = streams.Flag("print-game", "Include streamded game title into output.").Short('a').Bool()
+	streamsSubscribtions = streams.Flag("subscribtions", "Filter only streams that are subscribed.").Short('b').Bool()
+	//streamsNotify        = streams.Flag("notify", "Print the output through the notification instead of std out.").Short('n').Bool()
+	streamsPrintStatus = streams.Flag("status", "Include stream status into output.").Short('u').Bool()
+	streamsPrintGame   = streams.Flag("print-game", "Include streamded game title into output.").Short('a').Bool()
 
 	// watch
 	watch    = app.Command("watch", "Watch the stream.").Default()
 	streamer = watch.Flag("streamer", "Streamer name.").HintAction(listChannels).String()
 
 	// games
-	topGames = app.Command("games", "Get the list of currently most played games.")
-	limit    = topGames.Flag("limit", "Wanted list size of a request.").Int()
-	offset   = topGames.Flag("offset", "Pagination offset of a page (default page size is 10).").Int()
+	topGames       = app.Command("games", "Get the list of currently most played games.")
+	limit          = topGames.Flag("limit", "Wanted list size of a request.").Int()
+	offset         = topGames.Flag("offset", "Pagination offset of a page (default page size is 10).").Int()
+	topGamesNotify = topGames.Flag("notify", "Print the output through the notification instead of std out.").Short('n').Bool()
 
 	// setup
 	setup            = app.Command("setup", "create a config file with required values")
@@ -73,64 +73,26 @@ func main() {
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 
 	case streams.FullCommand():
-		if *streamsNotify == true {
-			var notification string
-			if *streamsSubscribtions == true {
-				streams := twitch.GetLiveSubs(getSettings().User.OauthToken).Streams
-				for k, v := range streams {
-					notification += strconv.Itoa(k+1) + ". " + v.Channel.Name + "\n"
-				}
-
-			} else if *streamsOthers == true {
-				streams := twitch.GetStreams(url.QueryEscape(*streamsGame), *streamsType, *streamsLimit, *streamsOffset).Streams
-				for k, v := range streams {
-					notification += strconv.Itoa(k+1) + ". " + v.Channel.Name + "\n"
-				}
-			} else {
-				streamsSub := twitch.GetLiveSubs(getSettings().User.OauthToken).Streams
-				for k, v := range streamsSub {
-					notification += strconv.Itoa(k+1) + ". " + v.Channel.Name + "\n"
-				}
-				streamsOth := twitch.GetStreams(url.QueryEscape(*streamsGame), *streamsType, *streamsLimit, *streamsOffset).Streams
-				for k, v := range streamsOth {
-					notification += strconv.Itoa(k+1) + ". " + v.Channel.Name + "\n"
-				}
+		if *streamsSubscribtions == true {
+			for _, v := range twitch.GetLiveSubs(getSettings().User.OauthToken).Streams {
+				printStream(v.Channel, streamsPrintStatus, streamsPrintGame)
 			}
-			exec.Command("notify-send", "GoTwitch", notification).Start()
 		} else {
-			if *streamsSubscribtions == true {
-				streams := twitch.GetLiveSubs(getSettings().User.OauthToken).Streams
-				for _, v := range streams {
-					printStream(v.Channel, streamsPrintStatus, streamsPrintGame)
-				}
-
-			} else if *streamsOthers == true {
-				streams := twitch.GetStreams(url.QueryEscape(*streamsGame), *streamsType, *streamsLimit, *streamsOffset).Streams
-				for _, v := range streams {
-					printStream(v.Channel, streamsPrintStatus, streamsPrintGame)
-				}
-			} else {
-				streamsSub := twitch.GetLiveSubs(getSettings().User.OauthToken).Streams
-				for _, v := range streamsSub {
-					printStream(v.Channel, streamsPrintStatus, streamsPrintGame)
-				}
-				streamsOth := twitch.GetStreams(url.QueryEscape(*streamsGame), *streamsType, *streamsLimit, *streamsOffset).Streams
-				for _, v := range streamsOth {
-					printStream(v.Channel, streamsPrintStatus, streamsPrintGame)
-				}
+			for _, v := range twitch.GetStreams(*streamsGame, *streamsType, *streamsLimit, *streamsOffset).Streams {
+				printStream(v.Channel, streamsPrintStatus, streamsPrintGame)
 			}
 		}
 
 	case topGames.FullCommand():
-		topGames := twitch.GetTopGames(limit, offset)
-		if *streamsNotify == true {
+		games := twitch.GetTopGames(limit, offset)
+		if *topGamesNotify == true {
 			var notification string
-			for k, v := range topGames.Top {
+			for k, v := range games.Top {
 				notification += strconv.Itoa(k+1) + ". " + v.Game.Name + "\n"
 			}
-			exec.Command("notify-send", "GoTwitch", notification).Start()
+			printNotification(notification)
 		} else {
-			for _, v := range topGames.Top {
+			for _, v := range games.Top {
 				printGame(v.Game)
 			}
 		}
@@ -209,6 +171,10 @@ func printStream(s twitch.Channel, showFlag *bool, gameFlag *bool) {
 	defer color.Unset()
 }
 
+func printNotification(body string) {
+	exec.Command("notify-send", "GoTwitch", body).Start()
+}
+
 func replaceAtIndex(in string, r rune, i int) string {
 	out := []rune(in)
 	out[i] = r
@@ -223,6 +189,13 @@ func limitStringLength(line string, maxLineLength int) string {
 		}
 	}
 	return line
+}
+
+func urlEncode(str string) string {
+	u, _ := url.Parse(str)
+	fmt.Println(u.String())
+	return u.String()
+
 }
 
 func setSettings(twitchUser, twitchOauthTokeno, playerName, playerQuality string) {
