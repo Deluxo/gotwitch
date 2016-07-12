@@ -73,6 +73,13 @@ func main() {
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 
 	case streams.FullCommand():
+		s := getSettings()
+		if s.Options.Game == true {
+			*streamsPrintGame = true
+		}
+		if s.Options.Status == true {
+			*streamsPrintStatus = true
+		}
 		if *streamsSubscribtions == true {
 			for _, v := range twitch.GetLiveSubs(getSettings().User.OauthToken).Streams {
 				printStream(v.Channel, streamsPrintStatus, streamsPrintGame)
