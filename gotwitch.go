@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"os/user"
 	"strconv"
+	"bufio"
 )
 
 type User struct {
@@ -33,6 +34,7 @@ type Settings struct {
 }
 
 var (
+	wr = bufio.NewWriter(os.Stdout)
 	usr, _       = user.Current()
 	settingsPath = usr.HomeDir + "/.config/gotwitch/config.json"
 
@@ -136,7 +138,7 @@ func listChannels() []string {
 		list = append(list, v.Channel.Name)
 	}
 	for _, v := range popularStreams {
-		fmt.Println(v.Channel.Name)
+		fmt.Fprintln(wr, v.Channel.Name)
 		list = append(list, v.Channel.Name)
 	}
 
@@ -147,7 +149,7 @@ func getSettings() Settings {
 	var settings Settings
 	settingsFile, err := os.Open(settingsPath)
 	if err != nil {
-		fmt.Println("No config file was found.\nConsider running setup command first.")
+		fmt.Fprintln(wr, "No config file was found.\nConsider running setup command first.")
 	}
 	fileStream, _ := ioutil.ReadAll(settingsFile)
 	json.Unmarshal(fileStream, &settings)
@@ -157,8 +159,9 @@ func getSettings() Settings {
 func printGame(s twitch.Game) {
 	game := color.New(color.Bold, color.FgHiRed).SprintFunc()
 	lineColored := game(s.Name) + "\n"
-	println(lineColored)
+	fmt.Fprintln(wr, lineColored)
 
+	defer wr.Flush()
 	defer color.Unset()
 }
 
@@ -173,8 +176,9 @@ func printStream(s twitch.Channel, showFlag *bool, gameFlag *bool) {
 	if *gameFlag == true {
 		lineColored += game(s.Game) + "\n"
 	}
-	println(lineColored)
+	fmt.Fprintln(wr,lineColored)
 
+	defer wr.Flush()
 	defer color.Unset()
 }
 
@@ -200,7 +204,7 @@ func limitStringLength(line string, maxLineLength int) string {
 
 func urlEncode(str string) string {
 	u, _ := url.Parse(str)
-	fmt.Println(u.String())
+	fmt.Fprintln(wr, u.String())
 	return u.String()
 
 }
