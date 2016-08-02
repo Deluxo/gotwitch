@@ -1,18 +1,18 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"github.com/deluxo/gotwitchlib"
-	"net/url"
 	"github.com/fatih/color"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/user"
 	"strconv"
-	"bufio"
 )
 
 type User struct {
@@ -34,7 +34,7 @@ type Settings struct {
 }
 
 var (
-	wr = bufio.NewWriter(os.Stdout)
+	wr           = bufio.NewWriter(os.Stdout)
 	usr, _       = user.Current()
 	settingsPath = usr.HomeDir + "/.config/gotwitch/config.json"
 
@@ -51,9 +51,14 @@ var (
 	streamsPrintStatus = streams.Flag("status", "Include stream status into output.").Short('u').Bool()
 	streamsPrintGame   = streams.Flag("print-game", "Include streamded game title into output.").Short('a').Bool()
 
+	// follow
+	follow             = app.Command("follow", "Follow the streamer.")
+	followStreamer     = follow.Flag("streamer", "Streamer name.").HintAction(listChannels).Short('s').String()
+	followNotification = follow.Flag("notify", "Get notified when the streamer comes online.").Short('n').Bool()
+
 	// watch
 	watch    = app.Command("watch", "Watch the stream.").Default()
-	streamer = watch.Flag("streamer", "Streamer name.").HintAction(listChannels).String()
+	streamer = watch.Flag("streamer", "Streamer name.").HintAction(listChannels).Short('s').String()
 
 	// games
 	topGames       = app.Command("games", "Get the list of currently most played games.")
@@ -91,6 +96,11 @@ func main() {
 				printStream(v.Channel, streamsPrintStatus, streamsPrintGame)
 			}
 		}
+
+	case follow.FullCommand():
+		s := getSettings()
+		response := twitch.Follow(s.User.OauthToken, s.User.Username, *followStreamer, *followNotification)
+		printFollow(response)
 
 	case topGames.FullCommand():
 		games := twitch.GetTopGames(limit, offset)
@@ -176,10 +186,15 @@ func printStream(s twitch.Channel, showFlag *bool, gameFlag *bool) {
 	if *gameFlag == true {
 		lineColored += game(s.Game) + "\n"
 	}
-	fmt.Fprintln(wr,lineColored)
+	fmt.Fprintln(wr, lineColored)
 
 	defer wr.Flush()
 	defer color.Unset()
+}
+
+func printFollow(s twitch.FollowChannel) {
+	fmt.Fprintln(wr, "ok")
+	defer wr.Flush()
 }
 
 func printNotification(body string) {
