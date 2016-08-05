@@ -179,12 +179,12 @@ func printStream(s twitch.Channel, showFlag *bool, gameFlag *bool) {
 	nick := color.New(color.FgHiBlue).SprintFunc()
 	status := color.New(color.FgHiWhite).SprintFunc()
 	game := color.New(color.Bold, color.FgHiRed).SprintFunc()
-	lineColored := nick(s.Name) + "\n"
+	lineColored := nick(s.Name) + "    "
 	if *showFlag == true {
 		lineColored += status(s.Status) + "\n"
 	}
 	if *gameFlag == true {
-		lineColored += game(s.Game) + "\n"
+		lineColored += game(s.Game)
 	}
 	fmt.Fprintln(wr, lineColored)
 
