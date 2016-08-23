@@ -144,7 +144,6 @@ func listChannels() []string {
 	).Streams
 	list := make([]string, 0)
 	for _, v := range subStreams {
-		//fmt.Println(v.Channel.Name)
 		list = append(list, v.Channel.Name)
 	}
 	for _, v := range popularStreams {
