@@ -34,6 +34,7 @@ type Settings struct {
 }
 
 var (
+	delim        = "    "
 	wr           = bufio.NewWriter(os.Stdout)
 	usr, _       = user.Current()
 	settingsPath = usr.HomeDir + "/.config/gotwitch/config.json"
@@ -120,6 +121,8 @@ func main() {
 		s := getSettings()
 		exec.Command(
 			"livestreamer",
+			"--twitch-oauth-token",
+			s.User.OauthToken,
 			"-Q",
 			twitch.TwitchUrl+*streamer,
 			s.Player.Quality,
@@ -178,12 +181,12 @@ func printStream(s twitch.Channel, showFlag *bool, gameFlag *bool) {
 	nick := color.New(color.FgHiBlue).SprintFunc()
 	status := color.New(color.FgHiWhite).SprintFunc()
 	game := color.New(color.Bold, color.FgHiRed).SprintFunc()
-	lineColored := nick(s.Name) + "    "
+	lineColored := nick(s.Name)
 	if *showFlag == true {
-		lineColored += status(s.Status) + "\n"
+		lineColored += delim + status(s.Status)
 	}
 	if *gameFlag == true {
-		lineColored += game(s.Game)
+		lineColored += delim + game(s.Game)
 	}
 	fmt.Fprintln(wr, lineColored)
 
