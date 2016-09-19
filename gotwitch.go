@@ -104,7 +104,7 @@ func main() {
 		printFollow(response)
 
 	case topGames.FullCommand():
-		games := twitch.GetTopGames(limit, offset)
+		games := twitch.GetTopGames(getSettings().User.OauthToken, limit, offset)
 		if *topGamesNotify == true {
 			var notification string
 			for k, v := range games.Top {
@@ -171,7 +171,7 @@ func getSettings() Settings {
 
 func printGame(s twitch.Game) {
 	game := color.New(color.Bold, color.FgHiRed).SprintFunc()
-	lineColored := game(s.Name) + "\n"
+	lineColored := game(s.Name)
 	fmt.Fprintln(wr, lineColored)
 
 	defer wr.Flush()
