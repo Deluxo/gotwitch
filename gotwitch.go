@@ -93,7 +93,7 @@ func main() {
 				printStream(v.Channel, streamsPrintStatus, streamsPrintGame)
 			}
 		} else {
-			for _, v := range twitch.GetStreams(*streamsGame, *streamsType, *streamsLimit, *streamsOffset).Streams {
+			for _, v := range twitch.GetStreams(getSettings().User.OauthToken, *streamsGame, *streamsType, *streamsLimit, *streamsOffset).Streams {
 				printStream(v.Channel, streamsPrintStatus, streamsPrintGame)
 			}
 		}
@@ -140,6 +140,7 @@ func listChannels() []string {
 		s.User.OauthToken).Streams
 
 	popularStreams := twitch.GetStreams(
+		getSettings().User.OauthToken,
 		*streamsGame,
 		*streamsType,
 		*streamsLimit,
