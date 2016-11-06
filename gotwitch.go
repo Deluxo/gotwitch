@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/deluxo/gotwitchlib"
@@ -12,7 +13,9 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"regexp"
 	"strconv"
+	"strings"
 )
 
 type User struct {
@@ -119,7 +122,7 @@ func main() {
 
 	case watch.FullCommand():
 		s := getSettings()
-		exec.Command(
+		cmd := exec.Command(
 			"livestreamer",
 			"--twitch-oauth-token",
 			s.User.OauthToken,
@@ -127,7 +130,53 @@ func main() {
 			twitch.TwitchUrl+*streamer,
 			s.Player.Quality,
 			"--player",
-			s.Player.Name).Start()
+			s.Player.Name) //.Start()
+
+		var out bytes.Buffer
+		cmd.Stdout = &out
+		cmd.Run()
+
+		/**
+		 * Check for a suspected livestreamer error.
+		 * All of this can be avoided by simply running the stream
+		 * through a sophisticated enough player, like mpv.
+		 * But abandoning a good dependency is hard...
+		 **/
+
+		e := "error: The specified stream\\(s\\) '\\w+' could not be found.*"
+		o := out.String()
+		if regexp.MustCompile(e).MatchString(o) {
+			//get available streams
+			format := strings.Split(o, "Available streams: ")
+			format = strings.Split(format[1], ", ")
+			hRes := 0
+			hFps := 0
+
+			//find the best stream available
+			for i := range format {
+				testFormat := strings.SplitN(format[i], "p", 2)
+				if len(testFormat) == 2 {
+					tRes, _ := strconv.Atoi(testFormat[0])
+					tFps, _ := strconv.Atoi(testFormat[1])
+					if hRes <= tRes && hFps <= tFps {
+						hRes = tRes
+						hFps = tFps
+					}
+				}
+			}
+
+			//last resort running
+			exec.Command(
+				"livestreamer",
+				"--twitch-oauth-token",
+				s.User.OauthToken,
+				"-Q",
+				twitch.TwitchUrl+*streamer,
+				strconv.Itoa(hRes)+"p"+strconv.Itoa(hFps),
+				"--player",
+				s.Player.Name).Start()
+		}
+
 	case setup.FullCommand():
 		setSettings(*twitchUser, *twitchOauthToken, *playerName, *playerQuality)
 	}
