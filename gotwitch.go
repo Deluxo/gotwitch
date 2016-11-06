@@ -71,9 +71,7 @@ var (
 	setup            = app.Command("setup", "create a config file with required values")
 	twitchUser       = setup.Flag("username", "Twitch.tv username.").Required().String()
 	twitchOauthToken = setup.Flag("oauth", "Twitch.tv oAuthToken (must be generated first).").Required().String()
-	playerName       = setup.Flag("player", "Player command to be used along with livestreamer, like mpv or vlc.").Required().String()
-	playerQuality    = setup.Flag("quality", "Default stream quality to be used, like best, worst, 720p, 480p.").Required().String()
-	// flags
+	playerName       = setup.Flag("player", "Player command to be used, like: mpv or vlc.").Required().String()
 )
 
 func main() {
@@ -119,15 +117,8 @@ func main() {
 
 	case watch.FullCommand():
 		s := getSettings()
-		exec.Command(
-			"livestreamer",
-			"--twitch-oauth-token",
-			s.User.OauthToken,
-			"-Q",
-			twitch.TwitchUrl+*streamer,
-			s.Player.Quality,
-			"--player",
-			s.Player.Name).Start()
+		exec.Command(s.Player.Name, twitch.TwitchUrl+*streamer).Start()
+
 	case setup.FullCommand():
 		setSettings(*twitchUser, *twitchOauthToken, *playerName, *playerQuality)
 	}
