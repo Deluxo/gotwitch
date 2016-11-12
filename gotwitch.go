@@ -20,8 +20,7 @@ type User struct {
 	OauthToken string
 }
 type Player struct {
-	Quality string
-	Name    string
+	Name string
 }
 type Options struct {
 	Game   bool
@@ -34,10 +33,12 @@ type Settings struct {
 }
 
 var (
-	delim        = "    "
-	wr           = bufio.NewWriter(os.Stdout)
-	usr, _       = user.Current()
-	settingsPath = usr.HomeDir + "/.config/gotwitch/config.json"
+	twitchClientId = "ctf0u38gzxl1emqdrsp17y0e20o1ajh"
+	twitchRedirUrl = "http://localhost"
+	delim          = "    "
+	wr             = bufio.NewWriter(os.Stdout)
+	usr, _         = user.Current()
+	settingsPath   = usr.HomeDir + "/.config/gotwitch/config.json"
 
 	app = kingpin.New("gotwitch", "A command-line twitch.tv application written in Golang.")
 
@@ -69,9 +70,10 @@ var (
 
 	// setup
 	setup            = app.Command("setup", "create a config file with required values")
-	twitchUser       = setup.Flag("username", "Twitch.tv username.").Required().String()
-	twitchOauthToken = setup.Flag("oauth", "Twitch.tv oAuthToken (must be generated first).").Required().String()
-	playerName       = setup.Flag("player", "Player command to be used, like: mpv or vlc.").Required().String()
+	twitchUser       = setup.Flag("username", "Twitch.tv username.").Short('u').String()
+	setupAccessToken = setup.Flag("auth", "generate oAuthToken (found in URL after successful login).").Short('a').Bool()
+	twitchOauthToken = setup.Flag("oauth", "Twitch.tv oAuthToken (must be generated first).").Short('o').String()
+	playerName       = setup.Flag("player", "Player command to be used, like: mpv or vlc.").Short('p').String()
 )
 
 func main() {
@@ -120,7 +122,14 @@ func main() {
 		exec.Command(s.Player.Name, twitch.TwitchUrl+*streamer).Start()
 
 	case setup.FullCommand():
-		setSettings(*twitchUser, *twitchOauthToken, *playerName, *playerQuality)
+		if *setupAccessToken {
+			url := "https://api.twitch.tv/kraken/oauth2/authorize?response_type=token&client_id=" + twitchClientId + "&redirect_uri=" + twitchRedirUrl + "&scope=user_read+user_blocks_edit+user_blocks_read+user_follows_edit+channel_read+channel_editor+channel_commercial+channel_stream+channel_subscriptions+user_subscriptions+channel_check_subscription+chat_login+channel_feed_read+channel_feed_edit"
+			exec.Command("xdg-open", url).Start()
+		} else if *twitchUser != "" && *playerName != "" && *twitchOauthToken != "" {
+			setSettings(*twitchUser, *twitchOauthToken, *playerName)
+		} else {
+			fmt.Println("Not generating the access token, nor creating the config file. Nothing to do...")
+		}
 	}
 }
 
@@ -153,7 +162,8 @@ func getSettings() Settings {
 	var settings Settings
 	settingsFile, err := os.Open(settingsPath)
 	if err != nil {
-		fmt.Fprintln(wr, "No config file was found.\nConsider running setup command first.")
+		fmt.Println("No config file was found. run gotwitch setup --help")
+		os.Exit(0)
 	}
 	fileStream, _ := ioutil.ReadAll(settingsFile)
 	json.Unmarshal(fileStream, &settings)
@@ -218,15 +228,14 @@ func urlEncode(str string) string {
 
 }
 
-func setSettings(twitchUser, twitchOauthTokeno, playerName, playerQuality string) {
+func setSettings(twitchUser, twitchOauthToken, playerName string) {
 	settings := Settings{
 		User: User{
 			Username:   twitchUser,
-			OauthToken: *twitchOauthToken,
+			OauthToken: twitchOauthToken,
 		},
 		Player: Player{
-			Quality: playerQuality,
-			Name:    playerName,
+			Name: playerName,
 		},
 		Options: Options{
 			Game:   false,
