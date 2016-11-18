@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=utf-8">
+		<title></title>
+	</head>
+	<body>
+		<h1>OAuth Token</h1>
+		<h2 id="token"></h2>
+		<script type="text/javascript">
+			var token = location.href.match(/access_token=([a-zA-Z0-9]+)/)[1];
+			document.getElementById("token").innerText = token;
+		</script>
+	</body>
+</html>
