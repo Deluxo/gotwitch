@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"path/filepath"
 	"strconv"
 )
 
@@ -34,7 +35,7 @@ type Settings struct {
 
 var (
 	twitchClientId = "ctf0u38gzxl1emqdrsp17y0e20o1ajh"
-	twitchRedirUrl = "http://localhost"
+	twitchRedirUrl = "https://deluxo.github.io/gotwitch"
 	delim          = "    "
 	wr             = bufio.NewWriter(os.Stdout)
 	usr, _         = user.Current()
@@ -248,5 +249,6 @@ func setSettings(twitchUser, twitchOauthToken, playerName string) {
 		settingsPath,
 		settingsJson,
 	)
+	os.MkdirAll(filepath.Dir(settingsPath), 0775)
 	ioutil.WriteFile(settingsPath, settingsJson, 776)
 }
