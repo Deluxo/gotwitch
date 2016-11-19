@@ -35,7 +35,7 @@ type Settings struct {
 
 var (
 	twitchClientId = "ctf0u38gzxl1emqdrsp17y0e20o1ajh"
-	twitchRedirUrl = "https://deluxo.github.io/gotwitch/docs/"
+	twitchRedirUrl = "https://deluxo.github.io/gotwitch/"
 	delim          = "    "
 	wr             = bufio.NewWriter(os.Stdout)
 	usr, _         = user.Current()
