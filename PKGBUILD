@@ -14,21 +14,16 @@ changelog=
 source=("$pkgname::git+$_ghuser$pkgname.git")
 md5sums=(SKIP)
 
-prepare() {
-	cd "$pkgname" || exit
-}
-
 build() {
-	cd "$pkgname" || exit
+	cd $pkgname
 	go install gotwitch.go
 	go build gotwitch.go
 }
 
 package() {
-	cd "$pkgname" || exit
+	cd $pkgname
 	chmod +x gotwitch
-	mkdir -p $pkgdir/bin
-	mv gotwitch $pkgdir/bin/
+	mkdir -p $pkgdir/usr/bin
+	mv gotwitch $pkgdir/usr/bin/
 	install -D -m644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
-	cd .. || exit
 }
