@@ -24,8 +24,9 @@ type Player struct {
 	Name string
 }
 type Options struct {
-	Game   bool
-	Status bool
+	Game    bool
+	Status  bool
+	Padding int
 }
 type Settings struct {
 	User    User
@@ -36,7 +37,7 @@ type Settings struct {
 var (
 	twitchClientId = "ctf0u38gzxl1emqdrsp17y0e20o1ajh"
 	twitchRedirUrl = "https://deluxo.github.io/gotwitch/"
-	delim          = "    "
+	strmLen        = 20
 	wr             = bufio.NewWriter(os.Stdout)
 	usr, _         = user.Current()
 	settingsPath   = usr.HomeDir + "/.config/gotwitch/config.json"
@@ -83,6 +84,7 @@ func main() {
 
 	case streams.FullCommand():
 		s := getSettings()
+		strmLen = s.Options.Padding
 		if s.Options.Game == true {
 			*streamsPrintGame = true
 		}
@@ -186,10 +188,22 @@ func printStream(s twitch.Channel, showFlag *bool, gameFlag *bool) {
 	game := color.New(color.Bold, color.FgHiRed).SprintFunc()
 	lineColored := nick(s.Name)
 	if *showFlag == true {
-		lineColored += delim + status(s.Status)
+		sp := strmLen - len(lineColored)
+		if sp < strmLen {
+			for i := 0; i < sp; i++ {
+				lineColored += " "
+			}
+		}
+		lineColored += status(s.Status)
 	}
 	if *gameFlag == true {
-		lineColored += delim + game(s.Game)
+		sp := strmLen - len(lineColored)
+		if sp < strmLen {
+			for i := 0; i < sp; i++ {
+				lineColored += " "
+			}
+		}
+		lineColored += game(s.Game)
 	}
 	fmt.Fprintln(wr, lineColored)
 
@@ -239,8 +253,9 @@ func setSettings(twitchUser, twitchOauthToken, playerName string) {
 			Name: playerName,
 		},
 		Options: Options{
-			Game:   false,
-			Status: false,
+			Game:    false,
+			Status:  false,
+			Padding: 20,
 		},
 	}
 	settingsJson, _ := json.MarshalIndent(settings, "", "\t")
