@@ -194,7 +194,7 @@ func printStream(s twitch.Channel, showFlag *bool, gameFlag *bool) {
 				lineColored += " "
 			}
 		}
-		lineColored += status(s.Status)
+		lineColored += " " + status(s.Status)
 	}
 	if *gameFlag == true {
 		sp := strmLen - len(lineColored)
@@ -203,7 +203,7 @@ func printStream(s twitch.Channel, showFlag *bool, gameFlag *bool) {
 				lineColored += " "
 			}
 		}
-		lineColored += game(s.Game)
+		lineColored += " " + game(s.Game)
 	}
 	fmt.Fprintln(wr, lineColored)
 
