@@ -12,18 +12,18 @@ usage: gotwitch [<flags>] <command> [<args> ...]
 A command-line twitch.tv application written in Golang.
 
 Flags:
-      --help             Show context-sensitive help (also try --help-long and --help-man).
-  -d, --columPadding=25  outputt column columPadding size
-  -w, --watch            watch the stream through a given player
-  -p, --player="mpv"     player to use for watching a stream
-  -f, --follow           follow the streamer
-  -n, --notify           notify if the streamer comes online
-  -u, --unfollow         unfollow the streamer
-  -q, --search           search for the streamer with a given name
-  -l, --ls               list the streamers
-  -b, --subscribed       filter out only subscribed streamers
-  -g, --game             print the game a streamer is playing
-  -s, --status           print the streamer's status
+      --help          Show context-sensitive help (also try --help-long and --help-man).
+  -d, --padding=25    output column padding width
+  -w, --watch         watch the stream through a given player
+  -p, --player="mpv"  player to use for watching a stream
+  -f, --follow        follow the streamer
+  -n, --notify        notify if the streamer comes online
+  -u, --unfollow      unfollow the streamer
+  -q, --search        search for the streamer with a given name
+  -l, --ls            list the streamers
+  -b, --subscribed    filter out only subscribed streamers
+  -g, --game          print the game a streamer is playing
+  -s, --status        print the streamer's status
 
 Args:
   [<channel>]  channel of a streamer
@@ -59,5 +59,4 @@ Commands:
     --username=USERNAME        twitch.tv channel
     --access-token="generate"  a generated access token provided by twitch.tv
     --player=PLAYER            video player to use for stream watching by default
-    --padding=25               padding to use for column width in output
 ```

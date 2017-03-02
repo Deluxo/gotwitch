@@ -37,9 +37,9 @@ type Player struct {
 
 // Options for Settings
 type Options struct {
-	Game         bool
-	Status       bool
-	columPadding int
+	Game    bool
+	Status  bool
+	Padding int
 }
 
 // Settings that ar saved to home/.config/gotwitch
@@ -58,10 +58,10 @@ var (
 	settingsPath   = usr.HomeDir + "/.config/gotwitch/config.json"
 	app            = kingpin.New("gotwitch", "A command-line twitch.tv application written in Golang.")
 
-	columPadding = app.Flag("columPadding", "outputt column columPadding size").Default("25").Short('d').Int()
-	streamer     = app.Command("streamer", "Do actions related to a streamer").Default()
-	game         = app.Command("game", "Do actions related to a game")
-	setup        = app.Command("setup", "setup procedure")
+	printColPadding = app.Flag("padding", "output column padding width").Default("25").Short('d').Int()
+	streamer          = app.Command("streamer", "Do actions related to a streamer").Default()
+	game              = app.Command("game", "Do actions related to a game")
+	setup             = app.Command("setup", "setup procedure")
 
 	gameTitle       = game.Arg("title", "game title a.k.a category").String()
 	streamerChannel = streamer.Arg("channel", "channel of a streamer").HintAction(listChannels).String()
@@ -83,7 +83,7 @@ var (
 	setupUser        = setup.Flag("username", "twitch.tv channel").String()
 	setupAccessToken = setup.Flag("access-token", "a generated access token provided by twitch.tv").Default("generate").String()
 	setupPlayer      = setup.Flag("player", "video player to use for stream watching by default").String()
-	setupPadding     = setup.Flag("padding", "padding to use for column width in output").Default("25").Int()
+	//setupPadding     = setup.Flag("padding", "padding to use for column width in output").Default("25").Int()
 )
 
 func main() {
@@ -144,7 +144,7 @@ func main() {
 			url := "https://api.twitch.tv/kraken/oauth2/authorize?response_type=token&client_id=" + twitchClientID + "&redirect_uri=" + twitchRedirURL + "&scope=user_read+user_blocks_edit+user_blocks_read+user_follows_edit+channel_read+channel_editor+channel_commercial+channel_stream+channel_subscriptions+user_subscriptions+channel_check_subscription+chat_login+channel_feed_read+channel_feed_edit"
 			exec.Command("xdg-open", url).Start()
 		} else if *setupUser != "" && *setupPlayer != "" && *setupAccessToken != "" {
-			setSettings(*setupUser, *setupAccessToken, *setupPlayer, *setupPadding)
+			setSettings(*setupUser, *setupAccessToken, *setupPlayer, *printColPadding)
 		} else {
 			fmt.Println("Not generating the access token, nor creating the config file. Nothing to do...")
 		}
@@ -197,8 +197,8 @@ func printStream(s twitch.Channel, showFlag *bool, gameFlag *bool) {
 	game := color.New(color.Bold, color.FgHiRed).SprintFunc()
 	lineColored := nick(s.Name)
 	if *showFlag == true {
-		sp := *columPadding - len(lineColored)
-		if sp < *columPadding {
+		sp := *printColPadding - len(lineColored)
+		if sp < *printColPadding {
 			for i := 0; i < sp; i++ {
 				lineColored += " "
 			}
@@ -206,8 +206,8 @@ func printStream(s twitch.Channel, showFlag *bool, gameFlag *bool) {
 		lineColored += " " + status(s.Status)
 	}
 	if *gameFlag == true {
-		sp := *columPadding - len(lineColored)
-		if sp < *columPadding {
+		sp := *printColPadding - len(lineColored)
+		if sp < *printColPadding {
 			for i := 0; i < sp; i++ {
 				lineColored += " "
 			}
@@ -251,9 +251,9 @@ func setSettings(twitchUser, twitchOauthToken, playerName string, padding int) {
 			Name: playerName,
 		},
 		Options: Options{
-			Game:         false,
-			Status:       false,
-			columPadding: padding,
+			Game:    false,
+			Status:  false,
+			Padding: padding,
 		},
 	}
 	settingsJSON, _ := json.MarshalIndent(settings, "", "\t")
