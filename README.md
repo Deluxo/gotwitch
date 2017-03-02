@@ -4,32 +4,57 @@
 It is a fairly simple approach to interacting with Twitch.tv through a command-line interface.
 It is written in [Go](https://golang.org/) and is a [free software](https://www.fsf.org/about/what-is-free-software).
 
-## Features
+## Help
+usage: gotwitch [<flags>] <command> [<args> ...]
 
-* Stream lookup
-    - By game title
-    - By type (live, playlist)
-    - Subscribed only
-* Follow a twitch.tv user
-* Open the stream with a player like mpv or vlc
-* Game lookup
+A command-line twitch.tv application written in Golang.
 
-More features are comig as long as there is demand for it!
+Flags:
+      --help             Show context-sensitive help (also try --help-long and --help-man).
+  -d, --columPadding=25  outputt column columPadding size
+  -w, --watch            watch the stream through a given player
+  -p, --player="mpv"     player to use for watching a stream
+  -f, --follow           follow the streamer
+  -n, --notify           notify if the streamer comes online
+  -u, --unfollow         unfollow the streamer
+  -q, --search           search for the streamer with a given name
+  -l, --ls               list the streamers
+  -b, --subscribed       filter out only subscribed streamers
+  -g, --game             print the game a streamer is playing
+  -s, --status           print the streamer's status
 
-Feel free to comment, fork it...or do whatever you please with it!
+Args:
+  [<channel>]  channel of a streamer
 
-## Usage
-For the first timers, there's unfortunately a setup to go through:
+Commands:
+  help [<command>...]
+    Show help.
 
-run:
-* `gotwitch setup -a` to generate a OAuth token.
-    - *It's an encoded login that you will have in plain text in your config file.
-    Don't use it if you feel insecure with that!*
-* `gotwitch setup -u YOUR_TWITCH.TV_USERNAME -o YOUR_OAUTH_TOKEN -p YOUR_PLAYER_OF_CHOICE`
-    - *The recommended player is [mpv](https://mpv.io/), but feel free to experiment with other players as well.*
-* `gotwitch watch STREAMER_USERNAME` or `gotwitch streams -b` to get the list of subscribed users.
 
-optional:
-* add this to your .zshrc or .bashrc to have tab-completion:
-    - If you use zsh: `eval "$(gotwitch --completion-script-zsh)"`
-    - If you use bash: `eval "$(gotwitch --completion-script-bash)"`
+  streamer [<flags>] [<channel>]
+    Do actions related to a streamer
+
+    -w, --watch         watch the stream through a given player
+    -p, --player="mpv"  player to use for watching a stream
+    -f, --follow        follow the streamer
+    -n, --notify        notify if the streamer comes online
+    -u, --unfollow      unfollow the streamer
+    -q, --search        search for the streamer with a given name
+    -l, --ls            list the streamers
+    -b, --subscribed    filter out only subscribed streamers
+    -g, --game          print the game a streamer is playing
+    -s, --status        print the streamer's status
+
+  game [<flags>] [<title>]
+    Do actions related to a game
+
+    -o, --offset=0  game list view starting point
+    -l, --limit=10  game list view length
+
+  setup [<flags>]
+    setup procedure
+
+    --username=USERNAME        twitch.tv channel
+    --access-token="generate"  a generated access token provided by twitch.tv
+    --player=PLAYER            video player to use for stream watching by default
+    --padding=25               padding to use for column width in output
