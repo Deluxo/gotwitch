@@ -1,3 +1,13 @@
+/**
+ *   ____     _____          _ _       _
+ *  / ___| __|_   _|_      _(_) |_ ___| |__
+ * | |  _ / _ \| | \ \ /\ / / | __/ __| '_ \
+ * | |_| | (_) | |  \ V  V /| | || (__| | | |
+ *  \____|\___/|_|   \_/\_/ |_|\__\___|_| |_|
+ *
+ *      Abuse me with your shell scripts!
+ */
+
 package main
 
 import (
@@ -8,26 +18,31 @@ import (
 	"github.com/fatih/color"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"io/ioutil"
-	"net/url"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
-	"strconv"
 )
 
+// User Model
 type User struct {
 	Username   string
 	OauthToken string
 }
+
+// Player Model
 type Player struct {
 	Name string
 }
+
+// Options for Settings
 type Options struct {
-	Game    bool
-	Status  bool
-	Padding int
+	Game         bool
+	Status       bool
+	columPadding int
 }
+
+// Settings that ar saved to home/.config/gotwitch
 type Settings struct {
 	User    User
 	Player  Player
@@ -35,110 +50,101 @@ type Settings struct {
 }
 
 var (
-	twitchClientId = "ctf0u38gzxl1emqdrsp17y0e20o1ajh"
-	twitchRedirUrl = "https://deluxo.github.io/gotwitch/"
-	strmLen        = 20
+	s              = getSettings()
+	twitchClientID = "ctf0u38gzxl1emqdrsp17y0e20o1ajh"
+	twitchRedirURL = "https://deluxo.github.io/gotwitch/"
 	wr             = bufio.NewWriter(os.Stdout)
 	usr, _         = user.Current()
 	settingsPath   = usr.HomeDir + "/.config/gotwitch/config.json"
+	app            = kingpin.New("gotwitch", "A command-line twitch.tv application written in Golang.")
 
-	app = kingpin.New("gotwitch", "A command-line twitch.tv application written in Golang.")
+	columPadding = app.Flag("columPadding", "outputt column columPadding size").Default("25").Short('d').Int()
+	streamer     = app.Command("streamer", "Do actions related to a streamer").Default()
+	game         = app.Command("game", "Do actions related to a game")
+	setup        = app.Command("setup", "setup procedure")
 
-	// streams
-	streams              = app.Command("streams", "Look up online streams.")
-	streamsGame          = streams.Flag("game", "Game title, like dota2").Short('g').String()
-	streamsType          = streams.Flag("type", "Stream type, e.g. live, all, or playlist").Short('t').String()
-	streamsLimit         = streams.Flag("limit", "Number of streams to print.").Short('l').Int()
-	streamsOffset        = streams.Flag("offset", "Pagination offset for given limit.").Short('o').Int()
-	streamsSubscribtions = streams.Flag("subscribtions", "Filter only streams that are subscribed.").Short('b').Bool()
-	//streamsNotify        = streams.Flag("notify", "Print the output through the notification instead of std out.").Short('n').Bool()
-	streamsPrintStatus = streams.Flag("status", "Include stream status into output.").Short('u').Bool()
-	streamsPrintGame   = streams.Flag("print-game", "Include streamded game title into output.").Short('a').Bool()
+	gameTitle       = game.Arg("title", "game title a.k.a category").String()
+	streamerChannel = streamer.Arg("channel", "channel of a streamer").HintAction(listChannels).String()
 
-	// follow
-	follow             = app.Command("follow", "Follow the streamer.")
-	followStreamer     = follow.Flag("streamer", "Streamer name.").HintAction(listChannels).Short('s').String()
-	followNotification = follow.Flag("notify", "Get notified when the streamer comes online.").Short('n').Bool()
+	streamerWatch         = streamer.Flag("watch", "watch the stream through a given player").Short('w').Bool()
+	streamerPlayer        = streamer.Flag("player", "player to use for watching a stream").Short('p').Default("mpv").String()
+	streamerFollow        = streamer.Flag("follow", "follow the streamer").Short('f').Bool()
+	streamerFollowNotify  = streamer.Flag("notify", "notify if the streamer comes online").Short('n').Bool()
+	streamerUnfollow      = streamer.Flag("unfollow", "unfollow the streamer").Short('u').Bool()
+	streamerSearch        = streamer.Flag("search", "search for the streamer with a given name").Short('q').Bool()
+	streamerList          = streamer.Flag("ls", "list the streamers").Short('l').Bool()
+	streamerSubscribed    = streamer.Flag("subscribed", "filter out only subscribed streamers").Short('b').Bool()
+	streamerIngludeGame   = streamer.Flag("game", "print the game a streamer is playing").Short('g').Bool()
+	streamerIncludeStatus = streamer.Flag("status", "print the streamer's status").Short('s').Bool()
 
-	// follow
-	unfollow             = app.Command("unfollow", "Unfollow the streamer.")
-	unfollowStreamer     = unfollow.Flag("streamer", "Streamer name.").HintAction(listChannels).Short('s').String()
+	gameOffset = game.Flag("offset", "game list view starting point").Default("0").Short('o').Int()
+	gameLimit  = game.Flag("limit", "game list view length").Default("10").Short('l').Int()
 
-	// watch
-	watch    = app.Command("watch", "Watch the stream.").Default()
-	streamer = watch.Flag("streamer", "Streamer name.").HintAction(listChannels).Short('s').String()
-
-	// games
-	topGames       = app.Command("games", "Get the list of currently most played games.")
-	limit          = topGames.Flag("limit", "Wanted list size of a request.").Int()
-	offset         = topGames.Flag("offset", "Pagination offset of a page (default page size is 10).").Int()
-	topGamesNotify = topGames.Flag("notify", "Print the output through the notification instead of std out.").Short('n').Bool()
-
-	// setup
-	setup            = app.Command("setup", "create a config file with required values")
-	twitchUser       = setup.Flag("username", "Twitch.tv username.").Short('u').String()
-	setupAccessToken = setup.Flag("auth", "generate oAuthToken (found in URL after successful login).").Short('a').Bool()
-	twitchOauthToken = setup.Flag("oauth", "Twitch.tv oAuthToken (must be generated first).").Short('o').String()
-	playerName       = setup.Flag("player", "Player command to be used, like: mpv or vlc.").Short('p').String()
+	setupUser        = setup.Flag("username", "twitch.tv channel").String()
+	setupAccessToken = setup.Flag("access-token", "a generated access token provided by twitch.tv").Default("generate").String()
+	setupPlayer      = setup.Flag("player", "video player to use for stream watching by default").String()
+	setupPadding     = setup.Flag("padding", "padding to use for column width in output").Default("25").Int()
 )
 
 func main() {
 	kingpin.CommandLine.HelpFlag.Short('h')
+
+	player := s.Player.Name
+	if *streamerPlayer != "" {
+		player = *streamerPlayer
+	}
+
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
-
-	case streams.FullCommand():
-		s := getSettings()
-		strmLen = s.Options.Padding
-		if s.Options.Game == true {
-			*streamsPrintGame = true
-		}
-		if s.Options.Status == true {
-			*streamsPrintStatus = true
-		}
-		if *streamsSubscribtions == true {
-			for _, v := range twitch.GetLiveSubs(getSettings().User.OauthToken).Streams {
-				printStream(v.Channel, streamsPrintStatus, streamsPrintGame)
+	case streamer.FullCommand():
+		switch {
+		case *streamerWatch:
+			if *streamerChannel == "" {
+				fmt.Println("provide the title of the channel to watch it")
+			} else {
+				exec.Command(
+					player,
+					twitch.TwitchURL+*streamerChannel,
+				).Start()
 			}
-		} else {
-			for _, v := range twitch.GetStreams(getSettings().User.OauthToken, *streamsGame, *streamsType, *streamsLimit, *streamsOffset).Streams {
-				printStream(v.Channel, streamsPrintStatus, streamsPrintGame)
-			}
-		}
-
-	case follow.FullCommand():
-		s := getSettings()
-		response := twitch.Follow(s.User.OauthToken, s.User.Username, *followStreamer, *followNotification)
-		printFollow(response)
-
-	case unfollow.FullCommand():
-		s := getSettings()
-		response := twitch.Unfollow(s.User.OauthToken, s.User.Username, *unfollowStreamer,)
-		printFollow(response)
-
-	case topGames.FullCommand():
-		games := twitch.GetTopGames(getSettings().User.OauthToken, limit, offset)
-		if *topGamesNotify == true {
-			var notification string
-			for k, v := range games.Top {
-				notification += strconv.Itoa(k+1) + ". " + v.Game.Name + "\n"
-			}
-			printNotification(notification)
-		} else {
-			for _, v := range games.Top {
-				printGame(v.Game)
+		case *streamerFollow && !*streamerUnfollow:
+			response := twitch.Follow(
+				s.User.OauthToken,
+				s.User.Username,
+				*streamerChannel,
+				*streamerFollowNotify,
+			)
+			printFollow(response)
+		case *streamerUnfollow && !*streamerFollow:
+			response := twitch.Unfollow(
+				s.User.OauthToken,
+				s.User.Username,
+				*streamerChannel,
+			)
+			printFollow(response)
+		case *streamerList:
+			if *streamerSubscribed {
+				for _, v := range twitch.GetLiveSubs(s.User.OauthToken).Streams {
+					printStream(v.Channel, streamerIncludeStatus, streamerIngludeGame)
+				}
+			} else {
+				for _, v := range twitch.GetStreams(s.User.OauthToken, "", "", 0, 0).Streams {
+					printStream(v.Channel, streamerIncludeStatus, streamerIngludeGame)
+				}
 			}
 		}
 
-	case watch.FullCommand():
-		s := getSettings()
-		exec.Command(s.Player.Name, twitch.TwitchURL+*streamer).Start()
+	case game.FullCommand():
+		games := twitch.GetTopGames(s.User.OauthToken, gameLimit, gameOffset)
+		for _, v := range games.Top {
+			printGame(v.Game)
+		}
 
 	case setup.FullCommand():
-		if *setupAccessToken {
-			url := "https://api.twitch.tv/kraken/oauth2/authorize?response_type=token&client_id=" + twitchClientId + "&redirect_uri=" + twitchRedirUrl + "&scope=user_read+user_blocks_edit+user_blocks_read+user_follows_edit+channel_read+channel_editor+channel_commercial+channel_stream+channel_subscriptions+user_subscriptions+channel_check_subscription+chat_login+channel_feed_read+channel_feed_edit"
+		if *setupAccessToken == "generate" {
+			url := "https://api.twitch.tv/kraken/oauth2/authorize?response_type=token&client_id=" + twitchClientID + "&redirect_uri=" + twitchRedirURL + "&scope=user_read+user_blocks_edit+user_blocks_read+user_follows_edit+channel_read+channel_editor+channel_commercial+channel_stream+channel_subscriptions+user_subscriptions+channel_check_subscription+chat_login+channel_feed_read+channel_feed_edit"
 			exec.Command("xdg-open", url).Start()
-		} else if *twitchUser != "" && *playerName != "" && *twitchOauthToken != "" {
-			setSettings(*twitchUser, *twitchOauthToken, *playerName)
+		} else if *setupUser != "" && *setupPlayer != "" && *setupAccessToken != "" {
+			setSettings(*setupUser, *setupAccessToken, *setupPlayer, *setupPadding)
 		} else {
 			fmt.Println("Not generating the access token, nor creating the config file. Nothing to do...")
 		}
@@ -151,13 +157,7 @@ func listChannels() []string {
 	subStreams := twitch.GetLiveSubs(
 		s.User.OauthToken).Streams
 
-	popularStreams := twitch.GetStreams(
-		getSettings().User.OauthToken,
-		*streamsGame,
-		*streamsType,
-		*streamsLimit,
-		*streamsOffset,
-	).Streams
+	popularStreams := twitch.GetStreams(s.User.OauthToken, "", "", 0, 0).Streams
 	list := make([]string, 0)
 	for _, v := range subStreams {
 		list = append(list, v.Channel.Name)
@@ -197,8 +197,8 @@ func printStream(s twitch.Channel, showFlag *bool, gameFlag *bool) {
 	game := color.New(color.Bold, color.FgHiRed).SprintFunc()
 	lineColored := nick(s.Name)
 	if *showFlag == true {
-		sp := strmLen - len(lineColored)
-		if sp < strmLen {
+		sp := *columPadding - len(lineColored)
+		if sp < *columPadding {
 			for i := 0; i < sp; i++ {
 				lineColored += " "
 			}
@@ -206,8 +206,8 @@ func printStream(s twitch.Channel, showFlag *bool, gameFlag *bool) {
 		lineColored += " " + status(s.Status)
 	}
 	if *gameFlag == true {
-		sp := strmLen - len(lineColored)
-		if sp < strmLen {
+		sp := *columPadding - len(lineColored)
+		if sp < *columPadding {
 			for i := 0; i < sp; i++ {
 				lineColored += " "
 			}
@@ -223,10 +223,6 @@ func printStream(s twitch.Channel, showFlag *bool, gameFlag *bool) {
 func printFollow(s twitch.FollowChannel) {
 	fmt.Fprintln(wr, "ok")
 	defer wr.Flush()
-}
-
-func printNotification(body string) {
-	exec.Command("notify-send", "GoTwitch", body).Start()
 }
 
 func replaceAtIndex(in string, r rune, i int) string {
@@ -245,14 +241,7 @@ func limitStringLength(line string, maxLineLength int) string {
 	return line
 }
 
-func urlEncode(str string) string {
-	u, _ := url.Parse(str)
-	fmt.Fprintln(wr, u.String())
-	return u.String()
-
-}
-
-func setSettings(twitchUser, twitchOauthToken, playerName string) {
+func setSettings(twitchUser, twitchOauthToken, playerName string, padding int) {
 	settings := Settings{
 		User: User{
 			Username:   twitchUser,
@@ -262,17 +251,17 @@ func setSettings(twitchUser, twitchOauthToken, playerName string) {
 			Name: playerName,
 		},
 		Options: Options{
-			Game:    false,
-			Status:  false,
-			Padding: 20,
+			Game:         false,
+			Status:       false,
+			columPadding: padding,
 		},
 	}
-	settingsJson, _ := json.MarshalIndent(settings, "", "\t")
+	settingsJSON, _ := json.MarshalIndent(settings, "", "\t")
 	fmt.Printf(
 		"Your settings are located at:\n%s\n\nand look like so:\n%s\n",
 		settingsPath,
-		settingsJson,
+		settingsJSON,
 	)
 	os.MkdirAll(filepath.Dir(settingsPath), 0775)
-	ioutil.WriteFile(settingsPath, settingsJson, 776)
+	ioutil.WriteFile(settingsPath, settingsJSON, 776)
 }
