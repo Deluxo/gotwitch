@@ -5,6 +5,8 @@ It is a fairly simple approach to interacting with Twitch.tv through a command-l
 It is written in [Go](https://golang.org/) and is a [free software](https://www.fsf.org/about/what-is-free-software).
 
 ## Help
+
+```
 usage: gotwitch [<flags>] <command> [<args> ...]
 
 A command-line twitch.tv application written in Golang.
@@ -58,3 +60,4 @@ Commands:
     --access-token="generate"  a generated access token provided by twitch.tv
     --player=PLAYER            video player to use for stream watching by default
     --padding=25               padding to use for column width in output
+```
