@@ -60,6 +60,10 @@ var (
 	followStreamer     = follow.Flag("streamer", "Streamer name.").HintAction(listChannels).Short('s').String()
 	followNotification = follow.Flag("notify", "Get notified when the streamer comes online.").Short('n').Bool()
 
+	// follow
+	unfollow             = app.Command("unfollow", "Unfollow the streamer.")
+	unfollowStreamer     = unfollow.Flag("streamer", "Streamer name.").HintAction(listChannels).Short('s').String()
+
 	// watch
 	watch    = app.Command("watch", "Watch the stream.").Default()
 	streamer = watch.Flag("streamer", "Streamer name.").HintAction(listChannels).Short('s').String()
@@ -106,6 +110,11 @@ func main() {
 		response := twitch.Follow(s.User.OauthToken, s.User.Username, *followStreamer, *followNotification)
 		printFollow(response)
 
+	case unfollow.FullCommand():
+		s := getSettings()
+		response := twitch.Unfollow(s.User.OauthToken, s.User.Username, *unfollowStreamer,)
+		printFollow(response)
+
 	case topGames.FullCommand():
 		games := twitch.GetTopGames(getSettings().User.OauthToken, limit, offset)
 		if *topGamesNotify == true {
@@ -122,7 +131,7 @@ func main() {
 
 	case watch.FullCommand():
 		s := getSettings()
-		exec.Command(s.Player.Name, twitch.TwitchUrl+*streamer).Start()
+		exec.Command(s.Player.Name, twitch.TwitchURL+*streamer).Start()
 
 	case setup.FullCommand():
 		if *setupAccessToken {
