@@ -49,6 +49,8 @@ type Settings struct {
 	Options Options
 }
 
+const ERR_NO_CHANNEL_PROVIDED = "No channel name provided. Please write channel name in command arguments..."
+
 var (
 	s              = getSettings()
 	twitchClientID = "ctf0u38gzxl1emqdrsp17y0e20o1ajh"
@@ -59,13 +61,14 @@ var (
 	app            = kingpin.New("gotwitch", "A command-line twitch.tv application written in Golang.")
 
 	printColPadding = app.Flag("padding", "output column padding width").Default("25").Short('d').Int()
-	streamer          = app.Command("streamer", "Do actions related to a streamer").Default()
-	game              = app.Command("game", "Do actions related to a game")
-	setup             = app.Command("setup", "setup procedure")
+	streamer        = app.Command("streamer", "Do actions related to a streamer").Default()
+	game            = app.Command("game", "Do actions related to a game")
+	setup           = app.Command("setup", "setup procedure")
 
 	gameTitle       = game.Arg("title", "game title a.k.a category").String()
 	streamerChannel = streamer.Arg("channel", "channel of a streamer").HintAction(listChannels).String()
 
+	streamerURL           = streamer.Flag("url", "print channels full URL for lazy people").Short('r').Bool()
 	streamerWatch         = streamer.Flag("watch", "watch the stream through a given player").Short('w').Bool()
 	streamerPlayer        = streamer.Flag("player", "player to use for watching a stream").Short('p').Default("mpv").String()
 	streamerFollow        = streamer.Flag("follow", "follow the streamer").Short('f').Bool()
@@ -99,12 +102,18 @@ func main() {
 		switch {
 		case *streamerWatch:
 			if *streamerChannel == "" {
-				fmt.Println("provide the title of the channel to watch it")
+				fmt.Println(ERR_NO_CHANNEL_PROVIDED)
 			} else {
 				exec.Command(
 					player,
 					twitch.TwitchURL+*streamerChannel,
 				).Start()
+			}
+		case *streamerURL:
+			if *streamerChannel != "" {
+				fmt.Println(twitch.TwitchURL + *streamerChannel)
+			} else {
+				fmt.Println(ERR_NO_CHANNEL_PROVIDED)
 			}
 		case *streamerFollow && !*streamerUnfollow:
 			response := twitch.Follow(

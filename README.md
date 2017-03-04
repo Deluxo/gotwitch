@@ -12,8 +12,10 @@ usage: gotwitch [<flags>] <command> [<args> ...]
 A command-line twitch.tv application written in Golang.
 
 Flags:
-      --help          Show context-sensitive help (also try --help-long and --help-man).
+      --help          Show context-sensitive help (also try --help-long and
+                      --help-man).
   -d, --padding=25    output column padding width
+  -r, --url           print channels full URL for lazy people
   -w, --watch         watch the stream through a given player
   -p, --player="mpv"  player to use for watching a stream
   -f, --follow        follow the streamer
@@ -36,6 +38,7 @@ Commands:
   streamer [<flags>] [<channel>]
     Do actions related to a streamer
 
+    -r, --url           print channels full URL for lazy people
     -w, --watch         watch the stream through a given player
     -p, --player="mpv"  player to use for watching a stream
     -f, --follow        follow the streamer
@@ -58,5 +61,8 @@ Commands:
 
     --username=USERNAME        twitch.tv channel
     --access-token="generate"  a generated access token provided by twitch.tv
-    --player=PLAYER            video player to use for stream watching by default
+    --player=PLAYER            video player to use for stream watching by
+                               default
+
+
 ```
