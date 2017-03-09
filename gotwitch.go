@@ -5,7 +5,7 @@
  * | |_| | (_) | |  \ V  V /| | || (__| | | |
  *  \____|\___/|_|   \_/\_/ |_|\__\___|_| |_|
  *
- *      Abuse me with your shell scripts!
+ *    Abuse me with your shell scripts!
  */
 
 package main
