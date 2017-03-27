@@ -18,7 +18,7 @@ export README_PREFIX
 export README_POSTFIX
 
 gotwitch: gotwitch.go
-	go build
+	go install
 	@echo "$$README_PREFIX" > README.md
 	./gotwitch --help-long >> README.md
 	@echo "$$README_POSTFIX" >> README.md
