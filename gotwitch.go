@@ -49,7 +49,8 @@ type Settings struct {
 	Options Options
 }
 
-const ERR_NO_CHANNEL_PROVIDED = "No channel name provided. Please write channel name in command arguments..."
+// ErrNoChannelProvided error
+const ErrNoChannelProvided = "No channel name provided. Please write channel name in command arguments..."
 
 var (
 	s              = getSettings()
@@ -86,7 +87,6 @@ var (
 	setupUser        = setup.Flag("username", "twitch.tv channel").String()
 	setupAccessToken = setup.Flag("access-token", "a generated access token provided by twitch.tv").Default("generate").String()
 	setupPlayer      = setup.Flag("player", "video player to use for stream watching by default").String()
-	//setupPadding     = setup.Flag("padding", "padding to use for column width in output").Default("25").Int()
 )
 
 func main() {
@@ -102,7 +102,7 @@ func main() {
 		switch {
 		case *streamerWatch:
 			if *streamerChannel == "" {
-				fmt.Println(ERR_NO_CHANNEL_PROVIDED)
+				fmt.Println(ErrNoChannelProvided)
 			} else {
 				exec.Command(
 					player,
@@ -113,7 +113,7 @@ func main() {
 			if *streamerChannel != "" {
 				fmt.Println(twitch.TwitchURL + *streamerChannel)
 			} else {
-				fmt.Println(ERR_NO_CHANNEL_PROVIDED)
+				fmt.Println(ErrNoChannelProvided)
 			}
 		case *streamerFollow && !*streamerUnfollow:
 			response := twitch.Follow(
@@ -167,7 +167,7 @@ func listChannels() []string {
 		s.User.OauthToken).Streams
 
 	popularStreams := twitch.GetStreams(s.User.OauthToken, "", "", 0, 0).Streams
-	list := make([]string, 0)
+	var list []string
 	for _, v := range subStreams {
 		list = append(list, v.Channel.Name)
 	}
@@ -182,12 +182,10 @@ func listChannels() []string {
 func getSettings() Settings {
 	var settings Settings
 	settingsFile, err := os.Open(settingsPath)
-	if err != nil {
-		fmt.Println("No config file was found. run gotwitch setup --help")
-		os.Exit(0)
+	if err == nil {
+		fileStream, _ := ioutil.ReadAll(settingsFile)
+		json.Unmarshal(fileStream, &settings)
 	}
-	fileStream, _ := ioutil.ReadAll(settingsFile)
-	json.Unmarshal(fileStream, &settings)
 	return settings
 }
 
