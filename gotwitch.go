@@ -75,7 +75,7 @@ var (
 	streamerFollow        = streamer.Flag("follow", "follow the streamer").Short('f').Bool()
 	streamerFollowNotify  = streamer.Flag("notify", "notify if the streamer comes online").Short('n').Bool()
 	streamerUnfollow      = streamer.Flag("unfollow", "unfollow the streamer").Short('u').Bool()
-	streamerSearch        = streamer.Flag("search", "search for the streamer with a given name").Short('q').Bool()
+	streamerSearch        = streamer.Flag("query", "query for streams with a game of channel name").Short('q').String()
 	streamerList          = streamer.Flag("ls", "list the streamers").Short('l').Bool()
 	streamerSubscribed    = streamer.Flag("subscribed", "filter out only subscribed streamers").Short('b').Bool()
 	streamerIngludeGame   = streamer.Flag("game", "print the game a streamer is playing").Short('g').Bool()
@@ -130,6 +130,10 @@ func main() {
 				*streamerChannel,
 			)
 			printFollow(response)
+		case *streamerSearch != "":
+				for _, v := range twitch.SearchStreams(s.User.OauthToken, gameLimit, gameOffset, streamerSearch).Streams {
+					printStream(v.Channel, streamerIncludeStatus, streamerIngludeGame)
+				}
 		case *streamerList:
 			if *streamerSubscribed {
 				for _, v := range twitch.GetLiveSubs(s.User.OauthToken).Streams {
