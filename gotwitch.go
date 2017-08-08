@@ -75,7 +75,7 @@ var (
 	streamerFollow        = streamer.Flag("follow", "follow the streamer").Short('f').Bool()
 	streamerFollowNotify  = streamer.Flag("notify", "notify if the streamer comes online").Short('n').Bool()
 	streamerUnfollow      = streamer.Flag("unfollow", "unfollow the streamer").Short('u').Bool()
-	streamerSearch        = streamer.Flag("query", "query for streams with a game of channel name").Short('q').String()
+	streamerSearch        = streamer.Flag("query", "query for streams with a game or channel name").Short('q').String()
 	streamerList          = streamer.Flag("ls", "list the streamers").Short('l').Bool()
 	streamerSubscribed    = streamer.Flag("subscribed", "filter out only subscribed streamers").Short('b').Bool()
 	streamerIngludeGame   = streamer.Flag("game", "print the game a streamer is playing").Short('g').Bool()
