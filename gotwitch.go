@@ -80,9 +80,11 @@ var (
 	streamerSubscribed    = streamer.Flag("subscribed", "filter out only subscribed streamers").Short('b').Bool()
 	streamerIngludeGame   = streamer.Flag("game", "print the game a streamer is playing").Short('g').Bool()
 	streamerIncludeStatus = streamer.Flag("status", "print the streamer's status").Short('s').Bool()
+	streamerOffset = streamer.Flag("offset", "streamer list view starting point").Default("0").Short('o').Int()
+	streamerLimit  = streamer.Flag("limit", "streamer list view length").Default("10").Short('i').Int()
 
 	gameOffset = game.Flag("offset", "game list view starting point").Default("0").Short('o').Int()
-	gameLimit  = game.Flag("limit", "game list view length").Default("10").Short('l').Int()
+	gameLimit  = game.Flag("limit", "game list view length").Default("10").Short('i').Int()
 
 	setupUser        = setup.Flag("username", "twitch.tv channel").String()
 	setupAccessToken = setup.Flag("access-token", "a generated access token provided by twitch.tv").Default("generate").String()
@@ -131,7 +133,7 @@ func main() {
 			)
 			printFollow(response)
 		case *streamerSearch != "":
-				for _, v := range twitch.SearchStreams(s.User.OauthToken, gameLimit, gameOffset, streamerSearch).Streams {
+				for _, v := range twitch.SearchStreams(s.User.OauthToken, streamerLimit, streamerOffset, streamerSearch).Streams {
 					printStream(v.Channel, streamerIncludeStatus, streamerIngludeGame)
 				}
 		case *streamerList:
