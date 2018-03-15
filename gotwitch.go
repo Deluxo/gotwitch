@@ -78,10 +78,11 @@ var (
 	streamerSearch        = streamer.Flag("query", "query for streams with a game or channel name").Short('q').String()
 	streamerList          = streamer.Flag("ls", "list the streamers").Short('l').Bool()
 	streamerSubscribed    = streamer.Flag("subscribed", "filter out only subscribed streamers").Short('b').Bool()
+	streamerThumbnail     = streamer.Flag("thumbnail", "include streamer thumbnail").Short('t').Bool()
 	streamerIngludeGame   = streamer.Flag("game", "print the game a streamer is playing").Short('g').Bool()
 	streamerIncludeStatus = streamer.Flag("status", "print the streamer's status").Short('s').Bool()
-	streamerOffset = streamer.Flag("offset", "streamer list view starting point").Default("0").Short('o').Int()
-	streamerLimit  = streamer.Flag("limit", "streamer list view length").Default("10").Short('i').Int()
+	streamerOffset        = streamer.Flag("offset", "streamer list view starting point").Default("0").Short('o').Int()
+	streamerLimit         = streamer.Flag("limit", "streamer list view length").Default("10").Short('i').Int()
 
 	gameOffset = game.Flag("offset", "game list view starting point").Default("0").Short('o').Int()
 	gameLimit  = game.Flag("limit", "game list view length").Default("10").Short('i').Int()
@@ -133,17 +134,17 @@ func main() {
 			)
 			printFollow(response)
 		case *streamerSearch != "":
-				for _, v := range twitch.SearchStreams(s.User.OauthToken, streamerLimit, streamerOffset, streamerSearch).Streams {
-					printStream(v.Channel, streamerIncludeStatus, streamerIngludeGame)
-				}
+			for _, v := range twitch.SearchStreams(s.User.OauthToken, streamerLimit, streamerOffset, streamerSearch).Streams {
+				printStream(v.Channel, streamerIncludeStatus, streamerIngludeGame, streamerThumbnail)
+			}
 		case *streamerList:
 			if *streamerSubscribed {
 				for _, v := range twitch.GetLiveSubs(s.User.OauthToken).Streams {
-					printStream(v.Channel, streamerIncludeStatus, streamerIngludeGame)
+					printStream(v.Channel, streamerIncludeStatus, streamerIngludeGame, streamerThumbnail)
 				}
 			} else {
 				for _, v := range twitch.GetStreams(s.User.OauthToken, "", "", 0, 0).Streams {
-					printStream(v.Channel, streamerIncludeStatus, streamerIngludeGame)
+					printStream(v.Channel, streamerIncludeStatus, streamerIngludeGame, streamerThumbnail)
 				}
 			}
 		}
@@ -204,10 +205,11 @@ func printGame(s twitch.Game) {
 	defer color.Unset()
 }
 
-func printStream(s twitch.Channel, showFlag *bool, gameFlag *bool) {
+func printStream(s twitch.Channel, showFlag *bool, gameFlag *bool, thumbnailFlag *bool) {
 	nick := color.New(color.FgHiBlue).SprintFunc()
 	status := color.New(color.FgHiWhite).SprintFunc()
 	game := color.New(color.Bold, color.FgHiRed).SprintFunc()
+	thumb := color.New(color.Bold, color.FgBlack).SprintFunc()
 	lineColored := nick(s.Name)
 	if *showFlag == true {
 		sp := *printColPadding - len(lineColored)
@@ -226,6 +228,15 @@ func printStream(s twitch.Channel, showFlag *bool, gameFlag *bool) {
 			}
 		}
 		lineColored += " " + game(s.Game)
+	}
+	if *thumbnailFlag == true {
+		sp := *printColPadding - len(lineColored)
+		if sp < *printColPadding {
+			for i := 0; i < sp; i++ {
+				lineColored += " "
+			}
+		}
+		lineColored += " " + thumb("("+s.Logo+")")
 	}
 	fmt.Fprintln(wr, lineColored)
 
